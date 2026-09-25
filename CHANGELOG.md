@@ -20,4 +20,13 @@ The project follows Semantic Versioning.
 - systemd service, kernel, OOM and storage/network log inspection.
 - Optional Docker diagnostics.
 - Timestamped text reports.
+- Privacy redaction enabled by default, with `--no-redact` for intentional full-detail reports.
+- Locale-independent numeric diagnostics.
+- ShellCheck validation with GitHub Actions.
 - Safe `--no-install` mode.
+
+### Validated
+
+- Full diagnostic execution validated on Ubuntu 24.04.
+- SMART/NVMe, memory, swap, temperature, battery, network and system-health reporting validated on real hardware.
+- Release candidate passed ShellCheck CI before promotion to v1.0.0.
