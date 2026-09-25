@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-TOOL_VERSION="1.0.0-rc3"
+TOOL_VERSION="1.0.0-rc4"
+# Keep messages localized while forcing machine-readable numeric output to use a dot.
+export LC_NUMERIC=C
+
 MODE="full"
 NO_INSTALL=0
 REDACT=1
@@ -133,8 +136,6 @@ system_logs(){
 }
 
 max_current_temperature(){
-  # POSIX/mawk-compatible parser. Parse only the first temperature immediately
-  # after the sensor label's colon; ignore low/high/crit metadata that follows.
   sensors 2>/dev/null | awk '
     index($0, ":") {
       line=$0
@@ -158,7 +159,11 @@ health_summary(){
   st="$(awk '/SwapTotal/{print $2}' /proc/meminfo)"; sf="$(awk '/SwapFree/{print $2}' /proc/meminfo)"; if (( st>0 )); then sp="$(awk -v t="$st" -v f="$sf" 'BEGIN{printf "%.0f",(t-f)*100/t}')"; echo "[INFO]     Swap       ${sp}% allocated; evaluate with PSI/vmstat, not percentage alone"; else echo "[INFO]     Swap       not configured"; fi
   rp="$(df -P / | awk 'NR==2{gsub("%","",$5);print $5}')"; if (( rp>=90 )); then echo "[CRITICAL] Filesystem root ${rp}% used"; elif (( rp>=80 )); then echo "[WARNING]  Filesystem root ${rp}% used"; else echo "[OK]       Filesystem root ${rp}% used"; fi
   if ensure_command sensors sensors; then temp="$(max_current_temperature)"; fi
-  if [[ -n "$temp" ]]; then if awk "BEGIN{exit !($temp>=95)}"; then echo "[CRITICAL] Temperature max ${temp} C"; elif awk "BEGIN{exit !($temp>=85)}"; then echo "[WARNING]  Temperature max ${temp} C"; else echo "[OK]       Temperature max ${temp} C"; fi; else echo "[INFO]     Temperature unavailable"; fi
+  if [[ -n "$temp" ]]; then
+    if awk -v t="$temp" 'BEGIN{exit !(t>=95)}'; then echo "[CRITICAL] Temperature max ${temp} C"
+    elif awk -v t="$temp" 'BEGIN{exit !(t>=85)}'; then echo "[WARNING]  Temperature max ${temp} C"
+    else echo "[OK]       Temperature max ${temp} C"; fi
+  else echo "[INFO]     Temperature unavailable"; fi
   for p in /sys/class/power_supply/*; do [[ -d "$p" && "$(cat "$p/type" 2>/dev/null || true)" == Battery ]] || continue; full="$(cat "$p/energy_full" 2>/dev/null || cat "$p/charge_full" 2>/dev/null || true)"; design="$(cat "$p/energy_full_design" 2>/dev/null || cat "$p/charge_full_design" 2>/dev/null || true)"; [[ "$full" =~ ^[0-9]+$ && "$design" =~ ^[0-9]+$ && $design -gt 0 ]] && bh="$(awk -v f="$full" -v d="$design" 'BEGIN{printf "%.0f",f*100/d}')"; break; done
   if [[ -n "$bh" ]]; then if (( bh<50 )); then echo "[CRITICAL] Battery    ${bh}% estimated health"; elif (( bh<70 )); then echo "[WARNING]  Battery    ${bh}% estimated health"; else echo "[OK]       Battery    ${bh}% estimated health"; fi; else echo "[INFO]     Battery    unavailable/not present"; fi
   if [[ "$INIT_SYSTEM" == systemd ]]; then failed="$(systemctl --failed --no-legend --plain 2>/dev/null | grep -c . || true)"; oom="$(journalctl -k -b --no-pager 2>/dev/null | grep -Eic 'Out of memory:|oom-kill:|Killed process [0-9]+|Memory cgroup out of memory' || true)"; [[ $failed -eq 0 ]] && echo "[OK]       Services   no failed systemd units" || echo "[WARNING]  Services   ${failed} failed unit(s)"; [[ $oom -eq 0 ]] && echo "[OK]       OOM        no OOM events this boot" || echo "[CRITICAL] OOM        ${oom} event(s) this boot"; fi
