@@ -1,0 +1,11 @@
+# Generated diagnostic reports
+system-diagnostic_*.txt
+diagnostico_*.txt
+reports/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*~
+*.swp
