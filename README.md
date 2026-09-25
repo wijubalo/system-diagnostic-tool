@@ -2,7 +2,7 @@
 
 Cross-platform system diagnostic tool for hardware, memory, storage, battery, temperature, network, firmware, and overall system health analysis.
 
-> **Current status:** Linux is implemented. Windows support is planned.
+> **Current release:** v1.0.0 — Linux implementation available. Windows support is planned.
 
 ## Features
 
@@ -16,7 +16,9 @@ Cross-platform system diagnostic tool for hardware, memory, storage, battery, te
 - Optional Docker information
 - Automatic Linux distribution and package-manager detection
 - Graceful degradation when hardware or commands are unavailable
+- Privacy redaction enabled by default for identifying report values
 - Timestamped text reports
+- ShellCheck validation through GitHub Actions
 
 ## Linux support
 
@@ -47,17 +49,20 @@ Options:
 --storage           Filesystems, disks, SMART/NVMe
 --network           Network, Wi-Fi and DNS
 --no-install        Never install missing optional dependencies
+--no-redact         Include identifying values in the report
 --report-dir DIR    Directory where reports are written
 --help              Show help
 ```
 
-Reports are named `system-diagnostic_HOSTNAME_YYYYMMDD_HHMMSS.txt`.
+With privacy redaction enabled (default), reports are named `system-diagnostic_redacted_YYYYMMDD_HHMMSS.txt`.
 
 ## Safety
 
 The tool is read-oriented. It does not change swap, kernel tuning, firmware, battery thresholds, network configuration, storage configuration or services. Package installation is the only optional modification and can be disabled with `--no-install`.
 
 Some hardware and SMART information requires root privileges, so `sudo` is recommended for a complete report.
+
+Privacy redaction is enabled by default. Use `--no-redact` only when you intentionally want identifying values included in the generated report.
 
 ## Roadmap
 
