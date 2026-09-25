@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-TOOL_VERSION="1.0.0-rc4"
+TOOL_VERSION="1.0.0"
 # Keep messages localized while forcing machine-readable numeric output to use a dot.
 export LC_NUMERIC=C
 
