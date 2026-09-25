@@ -78,7 +78,15 @@ detect_platform() {
 
 package_for(){ case "${PACKAGE_MANAGER}:$1" in apt-get:sensors) echo lm-sensors;; dnf:sensors|yum:sensors|pacman:sensors) echo lm_sensors;; zypper:sensors) echo sensors;; apk:sensors) echo lm-sensors;; *:smartctl) echo smartmontools;; *:nvme) echo nvme-cli;; *:lspci) echo pciutils;; *:lsusb) echo usbutils;; *:iw) echo iw;; *:dmidecode) echo dmidecode;; *) return 1;; esac; }
 install_package(){ local p="$1"; [[ $NO_INSTALL -eq 0 && $EUID -eq 0 ]] || return 1; case "$PACKAGE_MANAGER" in apt-get) apt-get update >/dev/null && DEBIAN_FRONTEND=noninteractive apt-get install -y "$p";; dnf) dnf install -y "$p";; yum) yum install -y "$p";; pacman) pacman -Sy --needed --noconfirm "$p";; zypper) zypper --non-interactive install "$p";; apk) apk add "$p";; *) return 1;; esac; }
-ensure_command(){ local c="$1" p; have "$c" && return 0; p="$(package_for "${2:-$1}" 2>/dev/null || true)"; [[ -n "$p" ]] && install_package "$p" >/dev/null 2>&1 || true; have "$c"; }
+ensure_command(){
+  local c="$1" p
+  have "$c" && return 0
+  p="$(package_for "${2:-$1}" 2>/dev/null || true)"
+  if [[ -n "$p" ]]; then
+    install_package "$p" >/dev/null 2>&1 || true
+  fi
+  have "$c"
+}
 
 basic(){
   section "SYSTEM / PLATFORM"
