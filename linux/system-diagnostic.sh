@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-TOOL_VERSION="1.0.0-rc2"
+TOOL_VERSION="1.0.0-rc3"
 MODE="full"
 NO_INSTALL=0
 REDACT=1
@@ -102,7 +102,6 @@ smart_report(){
 nvme_report(){
   if [[ $REDACT -eq 0 ]]; then run nvme list; return; fi
   printf '\n$ nvme list\n'
-  # Keep useful model/capacity data while never emitting the device serial number.
   nvme list 2>/dev/null | awk 'NR<=2{print;next} {if (NF>=4) {$3="<redacted>"}; print}' || true
 }
 
@@ -134,11 +133,18 @@ system_logs(){
 }
 
 max_current_temperature(){
-  # sensors output may contain absurd low/high/crit metadata. Only parse the first
-  # temperature value immediately following each sensor label's colon.
+  # POSIX/mawk-compatible parser. Parse only the first temperature immediately
+  # after the sensor label's colon; ignore low/high/crit metadata that follows.
   sensors 2>/dev/null | awk '
-    match($0, /:[[:space:]]*\+?(-?[0-9]+([.][0-9]+)?)°C/, m) {
-      t=m[1]+0; if (t >= -20 && t <= 150 && (!seen || t > max)) {max=t; seen=1}
+    index($0, ":") {
+      line=$0
+      sub(/^[^:]*:[[:space:]]*/, "", line)
+      if (line ~ /^\+?-?[0-9]+([.][0-9]+)?°C/) {
+        sub(/^\+/, "", line)
+        sub(/°C.*/, "", line)
+        t=line+0
+        if (t >= -20 && t <= 150 && (!seen || t > max)) {max=t; seen=1}
+      }
     }
     END {if (seen) printf "%.1f", max}
   '
